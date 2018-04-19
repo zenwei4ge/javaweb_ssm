@@ -139,5 +139,220 @@
                             System.out.println(p.getName()+" "+p.getAge());
                             return "hello";
                         }
-       
+ 六、使用InitBinder来处理Date类型的参数
+                  //the parameter was converted in initBinder
+                  @RequestMapping("/date")
+                  public String date(Date date){
+                      System.out.println(date);
+                      return "hello";
+                  }
 
+                  //At the time of initialization,convert the type "String" to type "date"
+                  @InitBinder
+                  public void initBinder(ServletRequestDataBinder binder){
+                      binder.registerCustomEditor(Date.class, new CustomDateEditor(new SimpleDateFormat("yyyy-MM-dd"),
+                              true));
+                  }
+  七、向前台传递参数(前台可在Request域中取到"p")
+                //pass the parameters to front-end
+                  @RequestMapping("/show")
+                  public String showPerson(Map<String,Object> map){
+                      Person p =new Person();
+                      map.put("p", p);
+                      p.setAge(20);
+                      p.setName("jayjay");
+                      return "show";
+                  }
+  八、使用Ajax调用
+                  //pass the parameters to front-end using ajax
+                    @RequestMapping("/getPerson")
+                    public void getPerson(String name,PrintWriter pw){
+                        pw.write("hello,"+name);        
+                    }
+                    @RequestMapping("/name")
+                    public String sayHello(){
+                        return "name";
+                    }
+                    
+                    $(function(){
+              $("#btn").click(function(){
+                  $.post("mvc/getPerson",{name:$("#name").val()},function(data){
+                      alert(data);
+                  });
+              });
+          });
+ 九、在Controller中使用redirect方式处理请求
+                    //redirect 
+                    @RequestMapping("/redirect")
+                    public String redirect(){
+                        return "redirect:hello";
+                    }
+十、文件上传
+十一、使用@RequestParam注解指定参数的name
+                      @Controller
+                      @RequestMapping("/test")
+                      public class mvcController1 {
+                          @RequestMapping(value="/param")
+                          public String testRequestParam(@RequestParam(value="id") Integer id,
+                                  @RequestParam(value="name")String name){
+                              System.out.println(id+" "+name);
+                              return "/hello";
+                          }    
+                      }
+十二、RESTFul风格的SringMVC
+                  1.RestController
+
+                      @Controller
+                      @RequestMapping("/rest")
+                      public class RestController {
+                          @RequestMapping(value="/user/{id}",method=RequestMethod.GET)
+                          public String get(@PathVariable("id") Integer id){
+                              System.out.println("get"+id);
+                              return "/hello";
+                          }
+
+                          @RequestMapping(value="/user/{id}",method=RequestMethod.POST)
+                          public String post(@PathVariable("id") Integer id){
+                              System.out.println("post"+id);
+                              return "/hello";
+                          }
+
+                          @RequestMapping(value="/user/{id}",method=RequestMethod.PUT)
+                          public String put(@PathVariable("id") Integer id){
+                              System.out.println("put"+id);
+                              return "/hello";
+                          }
+
+                          @RequestMapping(value="/user/{id}",method=RequestMethod.DELETE)
+                          public String delete(@PathVariable("id") Integer id){
+                              System.out.println("delete"+id);
+                              return "/hello";
+                          }
+
+                      }
+               2.form表单发送put和delete请求
+
+                  在web.xml中配置
+                      <!-- configure the HiddenHttpMethodFilter,convert the post method to put or delete -->
+                        <filter>
+                            <filter-name>HiddenHttpMethodFilter</filter-name>
+                            <filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+                        </filter>
+                        <filter-mapping>
+                            <filter-name>HiddenHttpMethodFilter</filter-name>
+                            <url-pattern>/*</url-pattern>
+                        </filter-mapping>
+                在前台可以用以下代码产生请求
+                         <form action="rest/user/1" method="post">
+                                  <input type="hidden" name="_method" value="PUT">
+                                  <input type="submit" value="put">
+                              </form>
+
+                              <form action="rest/user/1" method="post">
+                                  <input type="submit" value="post">
+                              </form>
+
+                              <form action="rest/user/1" method="get">
+                                  <input type="submit" value="get">
+                              </form>
+
+                              <form action="rest/user/1" method="post">
+                                  <input type="hidden" name="_method" value="DELETE">
+                                  <input type="submit" value="delete">
+                              </form>
+十三、返回json格式的字符串
+                  1.导入以下jar包
+                    2.方法代码
+
+                    @Controller
+                    @RequestMapping("/json")
+                    public class jsonController {
+
+                        @ResponseBody
+                        @RequestMapping("/user")
+                        public  User get(){
+                            User u = new User();
+                            u.setId(1);
+                            u.setName("jayjay");
+                            u.setBirth(new Date());
+                            return u;
+                        }
+                    }
+  十四、异常的处理
+                    1.处理局部异常（Controller内）
+                              @ExceptionHandler
+                          public ModelAndView exceptionHandler(Exception ex){
+                              ModelAndView mv = new ModelAndView("error");
+                              mv.addObject("exception", ex);
+                              System.out.println("in testExceptionHandler");
+                              return mv;
+                          }
+
+                          @RequestMapping("/error")
+                          public String error(){
+                              int i = 5/0;
+                              return "hello";
+                          }
+                     2.处理全局异常（所有Controller）
+                              @ControllerAdvice
+                            public class testControllerAdvice {
+                                @ExceptionHandler
+                                public ModelAndView exceptionHandler(Exception ex){
+                                    ModelAndView mv = new ModelAndView("error");
+                                    mv.addObject("exception", ex);
+                                    System.out.println("in testControllerAdvice");
+                                    return mv;
+                                }
+                            }
+                     3.另一种处理全局异常的方法
+                                在SpringMVC配置文件中配置(error是出错页面)
+                                <!-- configure SimpleMappingExceptionResolver -->
+                                <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+                                    <property name="exceptionMappings">
+                                        <props>
+                                            <prop key="java.lang.ArithmeticException">error</prop>
+                                        </props>
+                                    </property>
+                                </bean>
+ 十五、设置一个自定义拦截器
+                      1.创建一个MyInterceptor类，并实现HandlerInterceptor接口
+                              public class MyInterceptor implements HandlerInterceptor {
+
+                                  @Override
+                                  public void afterCompletion(HttpServletRequest arg0,
+                                          HttpServletResponse arg1, Object arg2, Exception arg3)
+                                          throws Exception {
+                                      System.out.println("afterCompletion");
+                                  }
+
+                                  @Override
+                                  public void postHandle(HttpServletRequest arg0, HttpServletResponse arg1,
+                                          Object arg2, ModelAndView arg3) throws Exception {
+                                      System.out.println("postHandle");
+                                  }
+
+                                  @Override
+                                  public boolean preHandle(HttpServletRequest arg0, HttpServletResponse arg1,
+                                          Object arg2) throws Exception {
+                                      System.out.println("preHandle");
+                                      return true;
+                                  }
+
+                              }
+                   2.在SpringMVC的配置文件中配置
+                                 <!-- interceptor setting -->
+                                <mvc:interceptors>
+                                    <mvc:interceptor>
+                                        <mvc:mapping path="/mvc/**"/>
+                                        <bean class="test.SpringMVC.Interceptor.MyInterceptor"></bean>
+                                    </mvc:interceptor>        
+                                </mvc:interceptors>
+  十六、表单的验证（使用Hibernate-validate）及国际化
+  十九、SpringMVC运行原理
+                    1. 客户端请求提交到DispatcherServlet
+                    2. 由DispatcherServlet控制器查询一个或多个HandlerMapping，找到处理请求的Controller
+                    3. DispatcherServlet将请求提交到Controller
+                    4. Controller调用业务逻辑处理后，返回ModelAndView
+                    5. DispatcherServlet查询一个或多个ViewResoler视图解析器，找到ModelAndView指定的视图
+                    6. 视图负责将结果显示到客户端
+            
